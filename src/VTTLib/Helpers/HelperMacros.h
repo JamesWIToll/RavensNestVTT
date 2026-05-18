@@ -1,0 +1,10 @@
+//
+// Created by wesley on 5/17/26.
+//
+
+#ifndef RAVENSNESTVTT_HELPERMACROS_H
+#define RAVENSNESTVTT_HELPERMACROS_H
+
+#define BITSHIFT_TO_POS(x) (1 << x)
+
+#endif //RAVENSNESTVTT_HELPERMACROS_H

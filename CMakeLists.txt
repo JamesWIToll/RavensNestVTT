@@ -26,8 +26,15 @@ ENDIF()
 
 
 add_library(NestVTTLib STATIC
-    src/VTTLib/NestTableTop.cpp
+    src/VTTLib/Logging/Logger.cpp
+    src/VTTLib/Clock/AppClock.cpp
+    src/VTTLib/Net/Socket.cpp
+    src/Entrypoints/main.cpp
 )
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(NestVTTLib PRIVATE CORE_DEBUG)
+endif ()
 
 target_include_directories(NestVTTLib PUBLIC
     src/
@@ -40,18 +47,18 @@ target_link_libraries(NestVTTLib PRIVATE
     SDL3::SDL3
 )
 
-add_executable(ClientEntry
-    src/Entrypoints/ClientMain.cpp
+add_executable(Client
+    src/Implementations/ClientApp.cpp
 )
 
-target_link_libraries(ClientEntry PRIVATE
+target_link_libraries(Client PRIVATE
     NestVTTLib
 )
 
-add_executable(ServerEntry
-    src/Entrypoints/ServerMain.cpp
+add_executable(Server
+    src/Implementations/ServerApp.cpp
 )
 
-target_link_libraries(ServerEntry PRIVATE
-        NestVTTLib
+target_link_libraries(Server PRIVATE
+    NestVTTLib
 )
