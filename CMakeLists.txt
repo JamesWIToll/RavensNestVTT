@@ -6,25 +6,6 @@ set(CMAKE_CXX_STANDARD 20)
 add_subdirectory(ThirdParty/SDL-release-3.4.8/)
 add_subdirectory(ThirdParty/SDL_net-main/)
 
-IF(WIN32)
-    add_custom_command(TARGET SDL3-shared POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_BINARY_DIR}/ThirdParty/SDL-release-3.4.8/SDL3.dll"
-            "${CMAKE_BINARY_DIR}/SDL3.dll"
-            COMMENT "Copying sdl3 dll to bin dir"
-            VERBATIM
-    )
-
-    add_custom_command(TARGET SDL3_net::SDL3_net-shared POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_BINARY_DIR}/ThirdParty/SDL_net-main/SDL3_net.dll"
-            "${CMAKE_BINARY_DIR}/SDL3_net.dll"
-            COMMENT "Copying sdl3 net dll to bin dir"
-            VERBATIM
-    )
-ENDIF()
-
-
 add_library(NestVTTLib STATIC
     src/VTTLib/Logging/Logger.cpp
     src/VTTLib/Clock/AppClock.cpp
@@ -62,3 +43,9 @@ add_executable(Server
 target_link_libraries(Server PRIVATE
     NestVTTLib
 )
+
+set_target_properties(NestVTTLib PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_target_properties(SDL3-shared PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_target_properties(SDL3_net-shared PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_target_properties(Server PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_target_properties(Client PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
