@@ -15,7 +15,6 @@ void ServerApp::run() {
         std::cout << "(press q to quit)" << std::endl;
         std::cin >> nextInput;
     } while (nextInput != 'q');
-    socket.endListening();
 }
 
 NestVTT::IVTTApp *application = new ServerApp();

@@ -59,12 +59,20 @@ namespace NestVTT::Net {
 
                     Packet packet = Packet::unpackDatagram(datagram);
 
-                    if (self->isConnected(packet.sourceConnection)) {
-                        self->initiateConnection(packet.sourceConnection);
+                    if (packet.type == PacketType::TEARDOWN) {
+                        auto addrStr = NET_GetAddressString(packet.sourceConnection.address);
+                        LOG_INFO("Socket {} received teardown notification from {}:{} ({})", self->socketName, addrStr, packet.sourceConnection.port, packet.sourceConnection.name);
+
+                        self->removeConnection(packet.sourceConnection);
+                        continue;
                     }
 
                     if (self->receiveInitPacket(packet)) {
                         continue;
+                    }
+
+                    if (!self->isConnected(packet.sourceConnection)) {
+                        self->initiateConnection(packet.sourceConnection);
                     }
 
                     SDL_LockMutex(self->receivedLock);
@@ -87,7 +95,6 @@ namespace NestVTT::Net {
 
             Packet packet {
                 .type = PacketType::INIT,
-                .sourceName = localAddrStr + ", socket: " + socketName,
                 .contents = data,
                 .sourceConnection = selfConnection
             };
@@ -113,7 +120,6 @@ namespace NestVTT::Net {
 
             Packet packet {
                 .type = PacketType::INIT,
-                .sourceName = localAddrStr + ", socket: " + socketName,
                 .contents = data,
                 .sourceConnection = selfConnection
             };
@@ -121,15 +127,17 @@ namespace NestVTT::Net {
             sendPacketDirect(packet, conn);
 
             auto addrStr = std::string(NET_GetAddressString(conn.address));
-            LOG_INFO("Socket {} sent confirmation to {}:{}", socketName, addrStr, conn.port);
+            LOG_INFO("Socket {} sent confirmation to {}:{} ({})", socketName, addrStr, conn.port, conn.name);
             if (request) {
-                LOG_INFO("Socket {} connection requested with {}:{}", socketName, addrStr, conn.port);
+                LOG_INFO("Socket {} connection requested with {}:{} ({})", socketName, addrStr, conn.port, conn.name);
             }
             return true;
         }
 
+
         bool receiveInitPacket(Packet &packet) {
             if (packet.type == PacketType::INIT) {
+
                 auto srcUrl = NET_GetAddressString(packet.sourceConnection.address);
                 auto port = packet.sourceConnection.port;
 
@@ -146,9 +154,10 @@ namespace NestVTT::Net {
                     SDL_LockMutex(connectionsLock);
                     connections.push_back(packet.sourceConnection);
                     SDL_UnlockMutex(connectionsLock);
-                    LOG_INFO("Connection initialized with {}:{}", srcUrl, port);
+                    LOG_INFO("Socket {} Connection initialized with {}:{}", socketName, srcUrl, port);
                 }
                 if (requested) {
+                    LOG_INFO("Socket {} Connection requested with {}:{}", socketName, srcUrl, port);
                     sendConfirm(packet.sourceConnection, !confirmed);
                 }
 
@@ -157,8 +166,26 @@ namespace NestVTT::Net {
             return false;
         }
 
+        bool teardownConnection(const Connection &conn) {
+            if (!isConnected(conn)) {
+                return false;
+            }
+
+            SDL_LockMutex(connectionsLock);
+            std::erase_if(connections, [&conn](const Connection& curr) {
+                return conn.address == curr.address &&
+                       conn.port == curr.port;
+            });
+            SDL_UnlockMutex(connectionsLock);
+
+            auto addrStr = NET_GetAddressString(conn.address);
+            LOG_INFO("Socket {} tore down connection with {}:{} ({})", socketName, addrStr, conn.port, conn.name);
+
+            return true;
+        }
+
     public:
-        explicit Socket(const Uint16 localPort, std::string socketName, std::string localAddr = "") :
+        explicit Socket(const Uint16 localPort, std::string socketName, const std::string& localAddr) :
             socketName(std::move(socketName)),
             localAddrStr(localAddr)
         {
@@ -191,7 +218,7 @@ namespace NestVTT::Net {
             receivedLock = SDL_CreateMutex();
             outgoingLock = SDL_CreateMutex();
             connectionsLock = SDL_CreateMutex();
-        };
+        }
 
         ~Socket() {
             SDL_LockMutex(listeningLock);
@@ -199,6 +226,10 @@ namespace NestVTT::Net {
             SDL_UnlockMutex(listeningLock);
 
             SDL_WaitThread(listenThread, nullptr);
+
+            for (const auto& connection : connections) {
+                removeConnection(connection);
+            }
 
             SDL_DestroyMutex(connectionsLock);
             SDL_DestroyMutex(socketLock);
@@ -248,7 +279,6 @@ namespace NestVTT::Net {
             SDL_LockMutex(outgoingLock);
             outgoingPackets.emplace(
                 type,
-                socketName,
                 std::move(data),
                 Connection{socketName, selfConnection.address, selfConnection.port }
             );
@@ -308,6 +338,40 @@ namespace NestVTT::Net {
             return initiateConnection(conn);
         }
 
+        const Connection *getConnection(std::string address, const Uint16 port) {
+            SDL_LockMutex(connectionsLock);
+            const auto found = std::ranges::find_if(connections,
+              [&address, &port](const Connection& conn) {
+                  return NET_GetAddressString(conn.address) == address && conn.port == port;
+              });
+
+            if (found == connections.end()) {
+                return nullptr;
+            }
+            SDL_UnlockMutex(connectionsLock);
+
+            return &*found;
+        }
+
+        bool removeConnection(const Connection &conn) {
+            if (!isConnected(conn)) {
+                return false;
+            }
+
+            const Packet packet {
+                .type = PacketType::TEARDOWN,
+                .contents = {},
+                .sourceConnection = selfConnection
+            };
+
+            sendPacketDirect(packet, conn);
+
+            auto addrStr = NET_GetAddressString(conn.address);
+            LOG_INFO("Socket {} sent teardown notification to {}:{} ({})", socketName, addrStr, conn.port, conn.name);
+
+            return teardownConnection(conn);
+        }
+
         [[nodiscard]] bool isConnected (const Connection& conn)  const{
             const auto addrStr = NET_GetAddressString(conn.address);
             const auto port = conn.port;
@@ -315,7 +379,8 @@ namespace NestVTT::Net {
             SDL_LockMutex(connectionsLock);
 
             for (const auto& [name, address2, port2] : connections) {
-                if (port2 == port && NET_GetAddressString(address2) == addrStr) {
+                auto addrStr2 = NET_GetAddressString(address2);
+                if (port2 == port && std::string(addrStr2) == std::string(addrStr)) {
                     SDL_UnlockMutex(connectionsLock);
                     return true;
                 }
@@ -324,6 +389,17 @@ namespace NestVTT::Net {
             SDL_UnlockMutex(connectionsLock);
 
             return false;
+        }
+
+        [[nodiscard]] bool isConnected (const std::string& address, const Uint16 port) const {
+            const auto addr = NET_ResolveHostname(address.c_str());
+            if (const auto result = NET_WaitUntilResolved(addr, 1000); result != NET_SUCCESS) {
+                return false;
+            }
+
+            const Connection conn {"", addr, port};
+
+            return isConnected (conn);
         }
 
     };

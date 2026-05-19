@@ -31,7 +31,6 @@ namespace NestVTT::Net {
 
     struct Packet {
         PacketType type;
-        std::string sourceName;
         std::vector<Uint8> contents;
         Connection sourceConnection;
 
@@ -39,8 +38,8 @@ namespace NestVTT::Net {
         static std::vector<Uint8> getBuffer(Packet& packet) {
             std::vector<Uint8> buffer;
 
-            const Uint8 nameLength = packet.sourceName.size();
-            const auto *nameStr = reinterpret_cast<const Uint8*>(&packet.sourceName[0]);
+            const Uint8 nameLength = packet.sourceConnection.name.size();
+            const auto *nameStr = reinterpret_cast<const Uint8*>(&packet.sourceConnection.name[0]);
             const auto type = static_cast<Uint8>(packet.type);
 
             buffer.push_back(type);
@@ -78,7 +77,6 @@ namespace NestVTT::Net {
 
             return Packet {
                 .type = type,
-                .sourceName = sourceName,
                 .contents = buffer,
                 .sourceConnection =  { sourceName, datagram->addr, datagram->port }
             };

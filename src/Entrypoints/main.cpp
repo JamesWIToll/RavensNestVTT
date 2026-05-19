@@ -10,7 +10,12 @@ int main(int argc, char* argv[]) {
     const auto listener = new NestVTT::Logging::ConsoleLog();
     REGISTER_LOG_LISTENER(listener);
 
-    application->run();
+    try {
+        application->run();
+    } catch (std::runtime_error& e) {
+        std::string msg(e.what());
+        LOG_FATAL("{}", msg);
+    }
 
     delete listener;
     delete application;
