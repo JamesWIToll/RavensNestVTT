@@ -6,6 +6,13 @@ set(CMAKE_CXX_STANDARD 20)
 add_subdirectory(ThirdParty/SDL-release-3.4.8/)
 add_subdirectory(ThirdParty/SDL_net-main/)
 
+
+IF(NOT EXISTS $ENV{VULKAN_SDK})
+    message(SEND_ERROR "VULKAN_SDK env variable is not set up correctly $ENV{VULKAN_SDK}")
+ELSE ()
+    message(STATUS "VULKAN_SDK env variable location found: $ENV{VULKAN_SDK}")
+ENDIF ()
+
 add_library(NestVTTLib STATIC
     src/VTTLib/Logging/Logger.cpp
     src/VTTLib/Clock/AppClock.cpp
@@ -21,6 +28,8 @@ target_include_directories(NestVTTLib PUBLIC
     src/
     ThirdParty/SDL-release-3.4.8/include/
     ThirdParty/SDL_net-main/include/
+    ThirdParty/nlohmann_JSON/include/single_include/
+    $ENV{VULKAN_SDK}/include/
 )
 
 target_link_libraries(NestVTTLib PRIVATE

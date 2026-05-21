@@ -201,10 +201,10 @@ namespace NestVTT::Net {
             if (!localAddr.empty()) {
                 addr = NET_ResolveHostname(localAddr.c_str());
             } else {
-                addr = NET_ResolveHostname("");
+                addr = nullptr;
             }
 
-            auto resolved = NET_WaitUntilResolved(addr, 5000);
+            const auto resolved = NET_WaitUntilResolved(addr, 5000);
 
             SDL_ERR_CHECK(addr != nullptr && resolved == NET_SUCCESS, "couldn't resolve host name: " + localAddr);
 

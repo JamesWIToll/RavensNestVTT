@@ -1,0 +1,9 @@
+{
+  "sockets" : [
+    {
+      "listenIP": "",
+      "listenPort": 8432,
+      "name": "NestVTT Server"
+    }
+  ]
+}

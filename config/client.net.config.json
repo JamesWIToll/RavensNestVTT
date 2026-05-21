@@ -1,0 +1,15 @@
+{
+  "sockets" : [
+    {
+      "listenIP": "",
+      "listenPort": 9000,
+      "name": "NestVTT Client",
+      "connections" : [
+        {
+          "address": "192.168.8.134",
+          "port": 8432
+        }
+      ]
+    }
+  ]
+}

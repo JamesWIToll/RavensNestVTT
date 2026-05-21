@@ -8,16 +8,6 @@
 
 
 void ClientApp::run() {
-
-    NestVTT::Net::Socket socket {9000, "ClientSocket1", "192.168.122.1"};
-    socket.beginListening();
-
-    socket.initiateConnection("192.168.122.1", 8000);
-
-    if (!socket.isConnected("192.168.122.1", 8000)) {
-        throw std::runtime_error("Could not connect to server");
-    }
-
     char nextInput = 0x00;
     do {
         std::cout << "(press q to quit)" << std::endl;
