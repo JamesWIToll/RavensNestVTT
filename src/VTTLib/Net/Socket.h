@@ -42,6 +42,11 @@ namespace NestVTT::Net {
         static int SDLCALL listen(void *arg) {
             bool quit = false;
             auto *self = static_cast<Socket *>(arg);
+            std::string selfAddr = "port";
+            if (self->selfConnection.address != nullptr) {
+                selfAddr = std::string(NET_GetAddressString(self->selfConnection.address));
+            }
+            LOG_INFO("Socket {} listening at {}:{}", self->socketName, selfAddr, self->selfConnection.port);
 
             while (!quit) {
 
@@ -200,13 +205,11 @@ namespace NestVTT::Net {
 
             if (!localAddr.empty()) {
                 addr = NET_ResolveHostname(localAddr.c_str());
+                const auto resolved = NET_WaitUntilResolved(addr, 5000);
+                SDL_ERR_CHECK(resolved == NET_SUCCESS, "couldn't resolve host name: " + localAddr);
             } else {
                 addr = nullptr;
             }
-
-            const auto resolved = NET_WaitUntilResolved(addr, 5000);
-
-            SDL_ERR_CHECK(addr != nullptr && resolved == NET_SUCCESS, "couldn't resolve host name: " + localAddr);
 
             selfConnection = Connection(socketName, addr, localPort);
 

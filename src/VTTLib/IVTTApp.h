@@ -9,16 +9,20 @@
 
 namespace NestVTT {
     class IVTTApp {
-        Config::Configuration config;
-        std::vector<Net::Socket> sockets;
+        Config::Configuration *config = nullptr;
+        std::vector<Net::Socket> sockets {};
 
     public:
-        explicit IVTTApp(const std::string& configFile) : config(configFile) {
-            sockets = config.getAndInitSockets();
+        virtual ~IVTTApp() {
+            delete config;
         }
 
-        virtual ~IVTTApp() = default;
         virtual void run() = 0;
+
+        void loadConfig (const std::string &configFilePath) {
+            config  = new Config::Configuration{configFilePath};
+            sockets = config->getAndInitSockets();
+        }
 
     };
 }

@@ -8,6 +8,7 @@
 
 
 void ClientApp::run() {
+    loadConfig("./config/client.config.json");
     char nextInput = 0x00;
     do {
         std::cout << "(press q to quit)" << std::endl;

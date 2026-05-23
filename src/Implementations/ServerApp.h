@@ -10,9 +10,6 @@
 class ServerApp : public NestVTT::IVTTApp {
 
 public:
-    ServerApp(): IVTTApp("./config/server.net.config.json") {}
-
-    ~ServerApp() override = default;
     void run() override;
 };
 

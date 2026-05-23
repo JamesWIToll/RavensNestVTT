@@ -8,11 +8,7 @@
 
 
 class ClientApp : public NestVTT::IVTTApp {
-
 public:
-    ClientApp() : IVTTApp("./config/client.net.config.json") {}
-
-    ~ClientApp() override = default;
     void run() override;
 };
 
